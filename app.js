@@ -23,9 +23,14 @@
   }
 
   // ---------- 목록 표시 ----------
+  // 상태 메시지: 목록이 비어 있을 때만 표시 (불러오는 중 / 실패 / 실제로 비어 있음)
+  function setStatus(text) {
+    $("empty").textContent = text;
+    $("empty").hidden = !text;
+  }
+
   function render() {
     grid.innerHTML = "";
-    $("empty").hidden = links.length > 0;
     for (const l of links) {
       if (!isHttp(l.url)) continue; // javascript: 등 차단
       const card = document.createElement("article");
@@ -53,14 +58,22 @@
   }
 
   async function load() {
-    if (!apiUrl) { $("empty").hidden = false; $("empty").textContent = "config.js에 apiUrl을 설정해 주세요."; return; }
-    // 캐시된 목록을 먼저 보여주고(콜드 스타트 대비) 최신본으로 갱신
-    try { links = JSON.parse(localStorage.getItem("mh_links") || "[]"); render(); } catch {}
-    try {
-      links = await (await fetch(apiUrl)).json();
-      localStorage.setItem("mh_links", JSON.stringify(links));
-    } catch {}
+    if (!apiUrl) { setStatus("config.js에 apiUrl을 설정해 주세요."); return; }
+    // 캐시된 목록이 있으면 먼저 보여주고(콜드 스타트 대비), 없으면 로딩 문구 표시
+    try { links = JSON.parse(localStorage.getItem("mh_links") || "[]"); } catch { links = []; }
     render();
+    setStatus(links.length ? "" : "불러오는 중...");
+    try {
+      const data = await (await fetch(apiUrl)).json();
+      if (!Array.isArray(data)) throw new Error();
+      links = data;
+      localStorage.setItem("mh_links", JSON.stringify(links));
+      render();
+      setStatus(links.length ? "" : "아직 등록된 웹앱이 없어요.");
+    } catch {
+      // 실패해도 캐시된 목록이 있으면 그대로 두고, 없을 때만 안내
+      setStatus(links.length ? "" : "목록을 불러오지 못했어요. 새로고침해 주세요.");
+    }
   }
 
   // ---------- 모달 ----------
@@ -116,7 +129,7 @@
       }
       links.push(item);
       localStorage.setItem("mh_links", JSON.stringify(links));
-      render(); addForm.reset(); dlg.close();
+      render(); setStatus(""); addForm.reset(); dlg.close();
     } catch (err) {
       msg.textContent = err.message || "오류가 발생했어요.";
     } finally { btn.disabled = false; }
