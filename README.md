@@ -1,21 +1,29 @@
 # My Home
 
-내가 만든 웹앱 링크를 모아두는 즐겨찾기 사이트 (GitHub Pages용 정적 사이트).
+내가 만든 웹앱 링크를 모아두는 즐겨찾기 사이트. 프론트는 GitHub Pages, 데이터는 구글 시트 + Apps Script.
 
-## 배포
-1. 이 폴더를 GitHub 저장소에 push
-2. Settings → Pages → Branch: `main` / root 로 배포
-3. `https://<아이디>.github.io/<저장소>/` 접속
+## 1. 구글 시트 / Apps Script 설정
+1. 새 구글 스프레드시트를 만듭니다. (시트는 비공개로 두세요)
+2. 메뉴 **확장 프로그램 → Apps Script** 를 열고, `apps-script/Code.gs` 내용을 붙여넣어 저장합니다.
+3. 왼쪽 **프로젝트 설정(톱니바퀴) → 스크립트 속성 → 속성 추가**
+   - 속성: `ADMIN_CODE`
+   - 값: 나만의 인증 코드 (20자 이상 랜덤 문자열 권장)
+4. 우측 상단 **배포 → 새 배포 → 유형: 웹 앱**
+   - 실행 사용자: **나**
+   - 액세스 권한: **모든 사용자**
+5. 배포 후 나오는 웹 앱 URL(`.../exec`)을 복사합니다.
+   (권한 승인 화면이 나오면 본인 계정으로 허용)
 
-## 인증 코드 만들기
-인증 코드 = **GitHub Fine-grained Personal Access Token** 입니다.
-1. GitHub → Settings → Developer settings → Fine-grained tokens → Generate
-2. Repository access: 이 저장소만 선택
-3. Permissions → **Contents: Read and write**
-4. 발급된 토큰을 `+ 추가` 버튼의 인증 코드 칸에 입력
+> 코드를 수정하면 **배포 관리 → 새 버전**으로 다시 배포해야 반영됩니다.
 
-토큰은 코드에 저장되지 않고(탭을 닫으면 사라짐), 저장소에 쓰기 권한이 있는 사람만 추가할 수 있습니다.
+## 2. 사이트 연결
+`config.js`의 `apiUrl`에 위 URL을 붙여넣고 push 합니다.
 
-## 구조
-- `links.json` — 웹앱 목록 (추가 시 자동 커밋됨)
-- `config.js` — 로컬 테스트용 owner/repo 설정
+## 3. GitHub Pages 배포
+Settings → Pages → Branch: `main` / root → `https://<아이디>.github.io/myhome/`
+
+## 보안 메모
+- 인증 코드는 Apps Script의 스크립트 속성에만 있고, 사이트 소스에는 없습니다.
+- 코드를 5회 연속 틀리면 15분간 잠깁니다.
+- URL은 `http(s)://`만 허용하고, 시트에는 텍스트로 저장해 수식 주입을 막습니다.
+- 수정·삭제·순서 변경은 구글 시트에서 직접 하면 됩니다.

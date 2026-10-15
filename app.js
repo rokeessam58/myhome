@@ -1,33 +1,40 @@
 (() => {
-  const cfg = window.SITE_CONFIG;
-  // GitHub Pages 주소에서 owner/repo 자동 감지
-  if (!cfg.owner && location.hostname.endsWith(".github.io")) {
-    cfg.owner = location.hostname.split(".")[0];
-    cfg.repo = location.pathname.split("/")[1] || `${cfg.owner}.github.io`;
-  }
-  const api = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}`;
+  const { apiUrl } = window.SITE_CONFIG;
 
   const $ = (id) => document.getElementById(id);
   const grid = $("grid"), dlg = $("dlg");
   const authForm = $("authForm"), addForm = $("addForm");
   let links = [];
-  let token = "";
+  let code = "";
 
-  // ---------- 목록 표시 ----------
+  // ---------- 유틸 ----------
+  const isHttp = (u) => /^https?:\/\//i.test(u || "");
   const hostOf = (u) => { try { return new URL(u).hostname; } catch { return u; } };
   const shot = (u) => `https://image.thum.io/get/width/600/crop/375/${u}`;
 
+  // Apps Script는 CORS 프리플라이트를 처리하지 못하므로 text/plain으로 전송
+  async function call(payload) {
+    const r = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ code, ...payload }),
+    });
+    return r.json();
+  }
+
+  // ---------- 목록 표시 ----------
   function render() {
     grid.innerHTML = "";
     $("empty").hidden = links.length > 0;
     for (const l of links) {
+      if (!isHttp(l.url)) continue; // javascript: 등 차단
       const card = document.createElement("article");
       card.className = "card";
 
       const img = document.createElement("img");
       img.className = "thumb"; img.loading = "lazy"; img.alt = "";
-      img.src = l.thumbnail || shot(l.url);
-      img.onerror = () => img.removeAttribute("src"); // 실패 시 그라데이션 배경
+      img.src = isHttp(l.thumbnail) ? l.thumbnail : shot(l.url);
+      img.onerror = () => img.removeAttribute("src");
 
       const body = document.createElement("div");
       body.className = "body";
@@ -46,10 +53,13 @@
   }
 
   async function load() {
+    if (!apiUrl) { $("empty").hidden = false; $("empty").textContent = "config.js에 apiUrl을 설정해 주세요."; return; }
+    // 캐시된 목록을 먼저 보여주고(콜드 스타트 대비) 최신본으로 갱신
+    try { links = JSON.parse(localStorage.getItem("mh_links") || "[]"); render(); } catch {}
     try {
-      const r = await fetch(`${cfg.dataFile}?t=${Date.now()}`);
-      links = await r.json();
-    } catch { links = []; }
+      links = await (await fetch(apiUrl)).json();
+      localStorage.setItem("mh_links", JSON.stringify(links));
+    } catch {}
     render();
   }
 
@@ -58,45 +68,34 @@
     authForm.hidden = false; addForm.hidden = true;
     $("authMsg").textContent = ""; $("addMsg").textContent = "";
     $("token").value = "";
-    // 이번 탭에서 이미 인증했다면 바로 입력 폼
-    const saved = sessionStorage.getItem("mh_token");
-    if (saved) { token = saved; authForm.hidden = true; addForm.hidden = false; }
+    const saved = sessionStorage.getItem("mh_code");
+    if (saved) { code = saved; authForm.hidden = true; addForm.hidden = false; }
     dlg.showModal();
   }
   $("addBtn").onclick = openDialog;
   dlg.querySelectorAll("[data-close]").forEach((b) => (b.onclick = () => dlg.close()));
 
-  const gh = (path, opts = {}) =>
-    fetch(`${api}${path}`, {
-      ...opts,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        ...(opts.headers || {}),
-      },
-    });
-
   // ---------- 1단계: 인증 ----------
   authForm.onsubmit = async (e) => {
     e.preventDefault();
-    token = $("token").value.trim();
+    code = $("token").value.trim();
     const msg = $("authMsg"); msg.textContent = "확인 중…";
-    if (!cfg.owner) { msg.textContent = "config.js에 owner/repo를 설정해 주세요."; return; }
+    if (!apiUrl) { msg.textContent = "config.js에 apiUrl을 설정해 주세요."; return; }
     try {
-      const r = await gh("");
-      const j = await r.json();
-      if (!r.ok || !j.permissions?.push) throw new Error();
-      sessionStorage.setItem("mh_token", token);
-      authForm.hidden = true; addForm.hidden = false;
-    } catch {
-      token = ""; msg.textContent = "인증 코드가 올바르지 않아요.";
-    }
+      const res = await call({ action: "verify" });
+      if (res.ok) {
+        sessionStorage.setItem("mh_code", code);
+        authForm.hidden = true; addForm.hidden = false;
+      } else {
+        code = "";
+        msg.textContent = res.error === "locked"
+          ? "시도 횟수를 초과했어요. 잠시 후 다시 시도해 주세요."
+          : "인증 코드가 올바르지 않아요.";
+      }
+    } catch { code = ""; msg.textContent = "서버에 연결하지 못했어요."; }
   };
 
-  // ---------- 2단계: 저장 (links.json을 GitHub에 커밋) ----------
-  const b64enc = (s) => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
-  const b64dec = (s) => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\n/g, "")), (c) => c.charCodeAt(0)));
-
+  // ---------- 2단계: 저장 ----------
   addForm.onsubmit = async (e) => {
     e.preventDefault();
     const f = Object.fromEntries(new FormData(addForm));
@@ -105,25 +104,19 @@
       url: f.url.trim(), linkText: f.linkText.trim(), thumbnail: f.thumbnail.trim(),
     };
     const btn = $("saveBtn"), msg = $("addMsg");
+    if (!isHttp(item.url) || (item.thumbnail && !isHttp(item.thumbnail))) {
+      msg.textContent = "URL은 http:// 또는 https://로 시작해야 해요."; return;
+    }
     btn.disabled = true; msg.textContent = "저장 중…";
     try {
-      // 최신본을 받아 항목을 추가한 뒤 커밋 (동시 수정 충돌 방지)
-      const cur = await gh(`/contents/${cfg.dataFile}?ref=${cfg.branch}`);
-      if (cur.status === 401) { sessionStorage.removeItem("mh_token"); throw new Error("인증이 만료됐어요. 다시 시도해 주세요."); }
-      const curJson = await cur.json();
-      const list = JSON.parse(b64dec(curJson.content));
-      list.push(item);
-      const put = await gh(`/contents/${cfg.dataFile}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          message: `add: ${item.title}`,
-          content: b64enc(JSON.stringify(list, null, 2) + "\n"),
-          sha: curJson.sha,
-          branch: cfg.branch,
-        }),
-      });
-      if (!put.ok) throw new Error("저장에 실패했어요. 토큰 권한을 확인해 주세요.");
-      links = list; render(); addForm.reset(); dlg.close();
+      const res = await call({ action: "add", item });
+      if (!res.ok) {
+        if (res.error === "unauthorized" || res.error === "locked") sessionStorage.removeItem("mh_code");
+        throw new Error(res.error === "invalid" ? "입력값을 확인해 주세요." : "저장에 실패했어요. 다시 인증해 주세요.");
+      }
+      links.push(item);
+      localStorage.setItem("mh_links", JSON.stringify(links));
+      render(); addForm.reset(); dlg.close();
     } catch (err) {
       msg.textContent = err.message || "오류가 발생했어요.";
     } finally { btn.disabled = false; }
