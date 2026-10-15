@@ -9,7 +9,6 @@
 
   // ---------- 유틸 ----------
   const isHttp = (u) => /^https?:\/\//i.test(u || "");
-  const shot = (u) => `https://image.thum.io/get/width/600/crop/375/${u}`;
 
   // Apps Script는 CORS 프리플라이트를 처리하지 못하므로 text/plain으로 전송
   async function call(payload) {
@@ -37,7 +36,7 @@
 
       const img = document.createElement("img");
       img.className = "thumb"; img.loading = "lazy"; img.alt = "";
-      img.src = isHttp(l.thumbnail) ? l.thumbnail : shot(l.url);
+      if (isHttp(l.thumbnail)) img.src = l.thumbnail; // 없으면 그라데이션 배경
       img.onerror = () => img.removeAttribute("src");
 
       const body = document.createElement("div");
