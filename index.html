@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Home</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <h1>My Home</h1>
+      <p class="sub">내가 만든 웹앱 모음</p>
+    </div>
+    <button id="addBtn" class="btn primary">+ 추가</button>
+  </header>
+
+  <main>
+    <div id="grid" class="grid"></div>
+    <p id="empty" class="empty" hidden>아직 등록된 웹앱이 없어요.</p>
+  </main>
+
+  <dialog id="dlg">
+    <!-- 1단계: 인증 -->
+    <form id="authForm" method="dialog" class="panel">
+      <h2>인증 코드 입력</h2>
+      <p class="hint">인증 코드를 입력해야 추가할 수 있어요.</p>
+      <input id="token" type="password" placeholder="인증 코드" autocomplete="off" required>
+      <p id="authMsg" class="msg"></p>
+      <div class="row">
+        <button type="button" class="btn" data-close>취소</button>
+        <button type="submit" class="btn primary">확인</button>
+      </div>
+    </form>
+
+    <!-- 2단계: 입력 폼 -->
+    <form id="addForm" class="panel" hidden>
+      <h2>웹앱 추가</h2>
+      <label>사이트 제목 <input name="title" required></label>
+      <label>설명 <textarea name="description" rows="3"></textarea></label>
+      <label>링크 URL <input name="url" type="url" placeholder="https://" required></label>
+      <label>링크 텍스트 <input name="linkText" placeholder="비우면 도메인이 표시돼요"></label>
+      <label>썸네일 이미지 URL <input name="thumbnail" type="url" placeholder="비우면 사이트 스크린샷 자동 사용"></label>
+      <p id="addMsg" class="msg"></p>
+      <div class="row">
+        <button type="button" class="btn" data-close>취소</button>
+        <button type="submit" class="btn primary" id="saveBtn">저장</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
