@@ -9,7 +9,6 @@
 
   // ---------- 유틸 ----------
   const isHttp = (u) => /^https?:\/\//i.test(u || "");
-  const hostOf = (u) => { try { return new URL(u).hostname; } catch { return u; } };
   const shot = (u) => `https://image.thum.io/get/width/600/crop/375/${u}`;
 
   // Apps Script는 CORS 프리플라이트를 처리하지 못하므로 text/plain으로 전송
@@ -46,7 +45,7 @@
       const h = document.createElement("h3"); h.textContent = l.title;
       const p = document.createElement("p"); p.textContent = l.description || "";
       const t = document.createElement("span"); t.className = "link";
-      t.textContent = l.linkText || hostOf(l.url);
+      t.textContent = l.url;
       const a = document.createElement("a");
       a.className = "btn primary open"; a.textContent = "열기";
       a.href = l.url; a.target = "_blank"; a.rel = "noopener noreferrer";
@@ -114,7 +113,7 @@
     const f = Object.fromEntries(new FormData(addForm));
     const item = {
       title: f.title.trim(), description: f.description.trim(),
-      url: f.url.trim(), linkText: f.linkText.trim(), thumbnail: f.thumbnail.trim(),
+      url: f.url.trim(), linkText: "", thumbnail: f.thumbnail.trim(),
     };
     const btn = $("saveBtn"), msg = $("addMsg");
     if (!isHttp(item.url) || (item.thumbnail && !isHttp(item.thumbnail))) {
