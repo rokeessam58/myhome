@@ -7,7 +7,7 @@
 var SHEET_NAME = 'links';
 var HEADERS = ['title', 'description', 'url', 'linkText', 'thumbnail'];
 var MAX_FAILS = 5;          // 연속 실패 허용 횟수
-var LOCK_MINUTES = 15;      // 초과 시 잠금 시간(분)
+var LOCK_MINUTES = 5;       // 초과 시 잠금 시간(분)
 
 function getSheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
