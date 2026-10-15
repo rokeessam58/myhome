@@ -12,40 +12,67 @@
       <h1>My Home</h1>
       <p class="sub">내가 만든 웹앱 모음</p>
     </div>
-    <button id="addBtn" class="btn primary">+ 추가</button>
+    <div class="actions">
+      <button id="editBtn" class="btn">편집</button>
+      <button id="addBtn" class="btn primary">+ 추가</button>
+    </div>
   </header>
+
+  <div id="editBar" class="editbar" hidden>
+    <span id="selCount">0개 선택</span>
+    <div class="actions">
+      <button id="selAllBtn" class="btn">전체 선택</button>
+      <button id="delBtn" class="btn danger" disabled>선택 삭제</button>
+      <button id="doneBtn" class="btn">완료</button>
+    </div>
+  </div>
 
   <main>
     <div id="grid" class="grid"></div>
     <p id="empty" class="empty" hidden></p>
   </main>
 
+  <!-- 추가 / 수정 / 편집 인증 공용 모달 -->
   <dialog id="dlg">
-    <!-- 1단계: 인증 -->
-    <form id="authForm" method="dialog" class="panel">
-      <h2>인증 코드 입력</h2>
-      <p class="hint">인증 코드를 입력해야 추가할 수 있어요.</p>
-      <input id="token" type="password" placeholder="인증 코드" autocomplete="off" required>
-      <p id="authMsg" class="msg"></p>
-      <div class="row">
-        <button type="button" class="btn" data-close>취소</button>
-        <button type="submit" class="btn primary">확인</button>
-      </div>
-    </form>
+    <!-- novalidate: 브라우저 기본 검증 말풍선 대신 자체 메시지 사용 -->
+    <form id="itemForm" class="panel" novalidate>
+      <h2 id="formTitle">웹앱 추가</h2>
 
-    <!-- 2단계: 입력 폼 -->
-    <form id="addForm" class="panel" hidden>
-      <h2>웹앱 추가</h2>
-      <label>사이트 제목 <input name="title" required></label>
-      <label>설명 <textarea name="description" rows="3"></textarea></label>
-      <label>링크 URL <input name="url" type="url" placeholder="https://" required></label>
-      <label>썸네일 이미지 URL <input name="thumbnail" type="url" placeholder="이미지 주소 (비우면 기본 배경)"></label>
+      <div id="authBox" class="authbox">
+        <label>인증 코드
+          <span class="inline">
+            <input id="token" type="password" placeholder="인증 코드" autocomplete="off">
+            <button type="button" id="verifyBtn" class="btn">확인</button>
+          </span>
+        </label>
+        <p id="authMsg" class="msg"></p>
+      </div>
+
+      <fieldset id="fields" disabled>
+        <label>사이트 제목 <input name="title"></label>
+        <label>설명 <textarea name="description" rows="3"></textarea></label>
+        <label>링크 URL <input name="url" placeholder="https://"></label>
+        <label>썸네일 이미지 URL <input name="thumbnail" placeholder="이미지 주소 (비우면 기본 배경)"></label>
+      </fieldset>
+
       <p id="addMsg" class="msg"></p>
       <div class="row">
-        <button type="button" class="btn" data-close>취소</button>
-        <button type="submit" class="btn primary" id="saveBtn">저장</button>
+        <button type="button" class="btn" id="cancelBtn">취소</button>
+        <button type="submit" class="btn primary" id="saveBtn" disabled>저장</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- 확인 / 알림 모달 (브라우저 alert·confirm 대체) -->
+  <dialog id="mdlg">
+    <div class="panel">
+      <h2 id="mTitle"></h2>
+      <p id="mMsg" class="hint"></p>
+      <div class="row">
+        <button type="button" class="btn" id="mCancel">취소</button>
+        <button type="button" class="btn primary" id="mOk">확인</button>
+      </div>
+    </div>
   </dialog>
 
   <script src="config.js"></script>
